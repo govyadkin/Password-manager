@@ -17,11 +17,9 @@ def gen_password(n):
                 chr(random.randint(91, 96)) +
                 chr(random.randint(97, 122)) +
                 chr(random.randint(123, 126)))
-    random.shuffle(password)
     while n > len(password):
         password += chr(random.randint(32, 126))
-    random.shuffle(password)
-    return password
+    return ''.join(random.sample(password, len(password)))
 
 
 @app.route('/', methods=['GET'])
@@ -57,18 +55,22 @@ def authentication():
                WHERE login = ? AND password = ?""",
                    [(data['login']), (data['password'])])
     results = cursor.fetchall()
-    if (results.count() == 0):
-        print("Error authentication")
+    # if results.count() == 0:
+    #   print("Error authentication")
+    #  return "Error"
     token = gen_password(20)
     cursor.execute("UPDATE Users SET token = ? WHERE user_id = ?",
-                   [(token), (results[0][0])])
+                   [token, (results[0][0])])
+    conn.commit()
     conn.close()
     return token
 
 
 @app.route('/authentication/gen_pass')
 def gen_pass():
-    n = request.data.decode('UTF-8') - '0'
+    n = request.data.decode('UTF-8')
+    if n < 8:
+        print("Error gen_pass")
     return gen_password(n)
 
 
@@ -90,7 +92,7 @@ def hard_pass():
             n += 7
         elif flag[5] and '/' >= i >= ' ':
             n += 16
-    return len(password) * log2(n)
+    return str(len(password) * log2(n))
 
 
 @app.route('/getter')
@@ -107,8 +109,6 @@ def getter():
            WHERE name_place = ? AND user_id = (SELECT user_id FROM Users WHERE token = ?)""",
                    [(data['name_place']), (data['token'])])
     results = cursor.fetchall()
-
-    # print(results)
     conn.close()
     s = ""
     for elem in results:
@@ -127,10 +127,10 @@ def insert():
     cursor.execute("""
     INSERT INTO Password(name_place, login, password, user_id, tag)
     VALUES (?,?,?,(SELECT user_id FROM Users WHERE token=?),?)
-    """,
-                   [(data["name_place"]), (data['login']), (data['password']), (data['token']), (data['tag'])])
+    """, [(data["name_place"]), (data['login']), (data['password']), (data['token']), (data['tag'])])
     conn.commit()
     conn.close()
+    return "Success"
 
 
 @app.route('/update', methods=['POST'])
@@ -142,7 +142,7 @@ def update():
     data = json.loads(json_string)
 
     cursor.execute("""UPDATE Password
-    SET login = ? password = ? tag = ?
+    SET login = ?, password = ?, tag = ?
     WHERE name_place = ? AND user_id = (SELECT user_id FROM Users WHERE token = ?) AND 
     login = ?""",
                    [(data['new_login']), (data['new_password']), (data['new_tag']),
@@ -150,6 +150,7 @@ def update():
 
     conn.commit()
     conn.close()
+    return "Success"
 
 
 @app.route('/update/user', methods=['POST'])
@@ -161,12 +162,13 @@ def update_user():
     data = json.loads(json_string)
 
     cursor.execute("""UPDATE Users
-    SET login = ? password = ?
+    SET login = ?, password = ?
     WHERE  token = ?""",
                    [(data['new_login']), (data['new_password']),(data['token'])])
 
     conn.commit()
     conn.close()
+    return "Success"
 
 
 @app.route('/delete', methods=['POST'])
@@ -177,10 +179,13 @@ def delete():
     json_string = request.data.decode('UTF-8')
     data = json.loads(json_string)
 
-    cursor.execute("DELETE FROM Password WHERE name = ? AND (user_id = (SELECT user_id FROM Users WHERE token = ?)",
+    cursor.execute("""DELETE FROM Password
+    WHERE name = ? AND
+    user_id = (SELECT user_id FROM Users WHERE token = ?)""",
                    [(data['name']), (data['token'])])
     conn.commit()
     conn.close()
+    return "Success"
 
 
 @app.route('/delete/user', methods=['POST'])
@@ -191,18 +196,37 @@ def delete_user():
     json_string = request.data.decode('UTF-8')
     data = json.loads(json_string)
 
-    cursor.execute("DELETE FROM Password WHERE user_id = (SELECT user_id FROM Users WHERE token = ?)",
+    cursor.execute("""DELETE FROM Password
+    WHERE user_id = (SELECT user_id FROM Users WHERE token = ?)""",
                    [(data['token'])])
     conn.commit()
-    cursor.execute("DELETE FROM Users WHERE token = ?)",
+    cursor.execute("DELETE FROM Users WHERE token = ?",
                    [(data['token'])])
     conn.close()
 
 
 @app.route('/upload')
 def upload():
-    file_name = 'mydatabase.db'
-    return send_from_directory(file_name, as_attachment=True)
+    conn = sqlite3.connect("mydatabase.db")
+    cursor = conn.cursor()
+
+    json_string = request.data.decode('UTF-8')
+    data = json.loads(json_string)
+
+    cursor.execute("""
+            SELECT Password.name_place, 
+                   Password.login,
+                   Password.password,
+                   Password.tag
+            FROM Password 
+            WHERE user_id = (SELECT user_id FROM Users WHERE token = ?)""", [(data['token'])])
+    results = cursor.fetchall()
+    result = ""
+    for elem in results:
+        result += json.dumps({"name_place": elem[0], "login": elem[1], "password": elem[2], "tag": elem[3]}) + ", "
+
+    conn.close()
+    return result
 
 
 if __name__ == '__main__':
