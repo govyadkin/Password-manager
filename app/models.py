@@ -1,7 +1,8 @@
 from app import db
 from cripto import password_encrypt, password_decrypt
+from datetime import datetime
 import json
-from password import gen_password
+from halper_func import gen_password
 
 
 class User(db.Model):
@@ -9,6 +10,8 @@ class User(db.Model):
     login = db.Column(db.String(120), unique=True)
     password = db.Column(db.Binary)
     token = db.Column(db.String(80), unique=True)
+
+    timestamp = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     posts = db.relationship('Password', backref='author', lazy='dynamic')
 
@@ -25,6 +28,7 @@ class User(db.Model):
         self.login = login
         self.token = gen_password(20)
         self.password = password_encrypt(password.encode(), self.token)
+        self.timestamp = datetime.utcnow()
 
     def __repr__(self):
         return json.dumps(self.printer())

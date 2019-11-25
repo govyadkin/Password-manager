@@ -11,7 +11,6 @@ iterations = 100_000
 
 
 def _derive_key(password: bytes, salt: bytes, iterations: int = iterations) -> bytes:
-    """Derive a secret key from a given password and salt"""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(), length=32, salt=salt,
         iterations=iterations, backend=backend)
@@ -36,9 +35,3 @@ def password_decrypt(token: bytes, password: str) -> bytes:
     iterations = int.from_bytes(iter, 'big')
     key = _derive_key(password.encode(), salt, iterations)
     return Fernet(key).decrypt(token)
-
-# message = 'John Doe'
-# password = 'master password'
-# token = password_encrypt(message.encode(), password).decode('UTF-8')
-# print(token)
-# print(password_decrypt(token, password).decode())

@@ -1,5 +1,14 @@
 import random
+import datetime
 from math import log2
+from app.models import User
+
+Active_time = 30
+
+
+def check_token(u: User) -> bool:
+    return (u is None or
+            (datetime.datetime.utcnow() - u.timestamp) > datetime.timedelta(minutes=Active_time))
 
 
 def hard_pass(password):
