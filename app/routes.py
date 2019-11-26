@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from app import app, db
-from flask import request, abort
-from cripto import password_encrypt
 import json
-from halper_func import gen_password, hard_pass, check_token
+from flask import request
+from app import app, db
 from app.models import Password, User
+from cripto import password_encrypt
+from halper_func import gen_password, hard_pass, check_token
 
 
 @app.route('/admin_use')
@@ -21,7 +21,7 @@ def sign_up():
 
     if users is not None:
         return {"status": "Error",
-                "massage": "Already exists"}
+                "massage": "Already exists"}, 422
 
     db.session.add(User(login=data['login'], password=data['password']))
     db.session.commit()
@@ -37,7 +37,7 @@ def sign_in():
     if (users is None or
             not users.non_hash_password() == data['password']):
         return {"status": "Error",
-                "massage": "Wrong login or password"}
+                "massage": "Wrong login or password"}, 422
 
     token = ""
 
@@ -48,7 +48,7 @@ def sign_in():
             break
         if i == 100:
             return {"status": "Error",
-                    "massage": "Sorry server is heavily loaded try again later"}
+                    "massage": "Sorry server is heavily loaded try again later"}, 503
 
     users.token = token
     hash_pass = password_encrypt(data['password'].encode(), token)
@@ -63,9 +63,9 @@ def gen_pass():
     n = request.data.decode()
     if n < 8:
         return {"status": "Error",
-                "massage": "Password is too short"}
-        return {"status": "Success",
-                "massage": gen_password(n)}
+                "massage": "Password is too short"}, 422
+    return {"status": "Success",
+            "massage": gen_password(n)}
 
 
 @app.route('/hard_pass')
@@ -81,13 +81,10 @@ def get_on_name_place():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.filter_by(name_place=data['name_place']).all()
-
-    if len(passes) == 0:
-        return {"status": "Error",
-                "massage": "No mention of " + data['name_place']}
 
     return {"status": "Success",
             "result": list(map(lambda a: {"status": "Success",
@@ -102,13 +99,10 @@ def get_on_tag():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.filter_by(tag=data['tag']).all()
-
-    if len(passes) == 0:
-        return {"status": "Error",
-                "massage": "No mention of " + data['tag']}
 
     return {"status": "Success",
             "result": list(map(lambda a: {"name_place": a.name_place,
@@ -123,7 +117,8 @@ def get_all():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.all()
 
@@ -138,13 +133,14 @@ def insert():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.filter_by(name_place=data['name_place']).filter_by(login=data["login"]).first()
 
     if passes is not None:
         return {"status": "Error",
-                "massage": "Already exists"}
+                "massage": "Already exists"}, 422
 
     db.session.add(Password(name_place=data['name_place'],
                             login=data["login"],
@@ -162,19 +158,20 @@ def update():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.filter_by(name_place=data['name_place']).filter_by(login=data["login"]).first()
 
     if passes is None:
         return {"status": "Error",
-                "massage": "Invalid name_place or login"}
+                "massage": "Invalid name_place or login"}, 422
 
     if not (data['new_login'] == data['login']):
         passes_new = user.posts.filter_by(name_place=data['name_place']).filter_by(login=data["new_login"]).first()
         if passes_new is not None:
             return {"status": "Error",
-                    "massage": "Already exists"}
+                    "massage": "Already exists this login"}, 422
 
     passes.login = data['new_login']
     passes.password = password_encrypt(data['new_password'].encode(), user.non_hash_password())
@@ -191,13 +188,14 @@ def update_user():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     if not (data['new_login'] == user.login):
         user_new = User.query.filter_by(login=data["new_login"]).first()
         if user_new is not None:
             return {"status": "Error",
-                    "massage": "Already exists"}
+                    "massage": "Already exists this login"}, 422
 
     passes = user.posts.all()
 
@@ -219,13 +217,14 @@ def delete():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.filter_by(name_place=data['name_place']).filter_by(login=data['login']).first()
 
     if passes is None:
         return {"status": "Error",
-                "massage": "Invalid name_place or login"}
+                "massage": "Not found name_place or login"}, 422
 
     db.session.delete(passes)
     db.session.commit()
@@ -239,7 +238,8 @@ def delete_user():
     user = User.query.filter_by(token=data['token']).first()
 
     if check_token(user):
-        abort(401)
+        return {"status": "Error",
+                "massage": "Authenticate"}, 401
 
     passes = user.posts.all()
 
