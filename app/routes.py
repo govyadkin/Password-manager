@@ -15,38 +15,11 @@ def login():
             'massage': 'Authenticate'}, 401
 
 
-# @app.route('/admin_use')
-# def admin_use():
-#     db.drop_all()
-#     db.create_all()
-#     u1 = User(login='MishaGo', password='Qwerty123456')
-#     u = User(login='Mishal', password='Qwerty123456')
-#     db.session.add(u)
-#     db.session.add(u1)
-#     db.session.add(
-#         Password(name_place='bmstu.ru', login='MishaGo', password='Qwerty123456', key='Qwerty123456', tag='All',
-#                  author=u))
-#     db.session.add(
-#         Password(name_place='bmstu.ru', login='Misha', password='Qwerty123456', key='Qwerty123456', tag='All',
-#                  author=u))
-#     db.session.commit()
-#     return {'passwords': list(map(lambda a: {'name_place': a.name_place,
-#                                              'login': a.login,
-#                                              'user_id': a.user_id}, Password.query.all())),
-#             'users': list(map(lambda a: {'login': a.login}, User.query.all()))}
-
-
-@app.route('/', methods=['GET'])
-def helloworld():
-    return "hello, world"
-
-
 @app.route('/user/signup', methods=['POST'])
 def sign_up():
     if current_user.is_authenticated:
         logout_user()
-    db.drop_all()
-    db.create_all()
+
     data = json.loads(request.data.decode())
 
     ch_in = check_input(data, ['login', 'password', 'open_key_client'], current_user)
@@ -150,11 +123,13 @@ def get_on_section(section):
                 'massage': 'Invalid section'}, 404
 
     db.session.commit()
+
     return rsa.encrypt(json.dumps({'status': 'Success',
                                    'result': list(map(lambda a: {'name_place': a.name_place,
                                                                  'login': a.login,
                                                                  'password': a.non_hash_password(data['key'])},
-                                                      passes))}).encode(), current_user.open_key_client)
+                                                      passes))}).encode(),
+                       rsa.PublicKey.load_pkcs1(current_user.open_key_client))
 
 
 @app.route('/password/insert', methods=['POST'])
@@ -207,6 +182,10 @@ def update_password_api():
                 'massage': 'Invalid name_place or login'}, 422
 
     if 'new_login' in data:
+        if data['new_login'] is '':
+            return {'status': 'Error',
+                    'massage': 'Unacceptable length new_login'}, 411
+
         if not (data['new_login'] == data['login']):
             passes_new = current_user.passes \
                 .filter_by(name_place=data['name_place']) \
@@ -217,9 +196,17 @@ def update_password_api():
         passes.login = data['new_login']
 
     if 'new_password' in data:
+        if len(data['new_password']) < 8:
+            return {'status': 'Error',
+                    'massage': 'Unacceptable length new_login'}, 411
+
         passes.password = password_encrypt(data['new_password'].encode(), data['key'])
 
     if 'new_tag' in data:
+        if data['new_tag'] is '':
+            return {'status': 'Error',
+                    'massage': 'Unacceptable length new_tag'}, 411
+
         passes.tag = data['new_tag']
 
     db.session.commit()
@@ -287,7 +274,9 @@ def delete_password_api():
 
 
 @app.route('/delete/user', methods=['DELETE'])
-@login_required
 def delete_user_api():
-    delete_user(current_user)
-    return {'status': 'Success'}
+    if current_user.is_authenticated:
+        delete_user(current_user)
+        return {'status': 'Success'}
+    return {'status': 'Error',
+            'massage': 'Authenticate'}, 401

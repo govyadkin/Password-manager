@@ -8,8 +8,8 @@ services:
 language: python
 
 after_success:
-- sh .travis/deploy_docker.sh
-- sh .travis/deploy_heroku.sh
+  - sh .travis/deploy_docker.sh
+  - sh .travis/deploy_heroku.sh
 
 notifications:
-email: false
+  email: false
