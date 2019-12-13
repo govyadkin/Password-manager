@@ -5,7 +5,6 @@ if [ "$TRAVIS_BRANCH" = "master" ]; then
 else
     TAG="$TRAVIS_BRANCH"
 fi
-docker build -f Dockerfile -t $DOCKER_USER/
-:$TAG .
+docker build -f Dockerfile -t $DOCKER_USER/password_manager:$TAG .
 
-docker push $DOCKER_USER/Password-manager:$TAG
+docker push $DOCKER_USER/password_manager:$TAG
