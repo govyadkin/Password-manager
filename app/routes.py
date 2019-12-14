@@ -14,6 +14,10 @@ def login():
     return {'status': 'Error',
             'massage': 'Authenticate'}, 401
 
+@app.route('/')
+def hello():
+    db.create_all()
+    return "Hello, Password Manager"
 
 @app.route('/user/signup', methods=['POST'])
 def sign_up():
