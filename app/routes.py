@@ -16,7 +16,6 @@ def login():
 
 @app.route('/')
 def hello():
-    db.create_all()
     return "Hello, Password Manager"
 
 @app.route('/user/signup', methods=['POST'])
