@@ -6,7 +6,7 @@ cffi==1.13.2
 chardet==3.0.4
 Click==7.0
 crypto==1.4.1
-cryptography==2.1.4
+cryptography==2.3
 enum34==1.1.6
 Flask==1.1.1
 Flask-Login==0.4.1
@@ -31,7 +31,7 @@ pycparser==2.19
 pygost==4.0
 python-dateutil==2.8.1
 python-editor==1.0.4
-pyxdg==0.25
+pyxdg==0.26
 PyYAML==5.2
 query-string==2019.4.13
 request==2019.4.13
