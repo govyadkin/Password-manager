@@ -7,6 +7,12 @@ services:
 
 language: python
 
+jobs:
+  include:
+    - name: "tests"
+      script:
+      - python -m unittest discover ./tests
+
 after_success:
   - sh .travis/deploy_docker.sh
   - sh .travis/deploy_heroku.sh

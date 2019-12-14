@@ -104,7 +104,7 @@ def hard_password_api():
 @app.route('/password/get/<section>', methods=['GET'])
 @login_required
 def get_on_section(section):
-    data = json.loads(rsa.decrypt(request.data, app.config['SECRET_KEY']).decode())
+    data = json.loads(rsa.decrypt(request.data, rsa.PrivateKey.load_pkcs1(app.config['SECRET_KEY'].encode())).decode())
 
     ch = check_input(data, ['key', section], current_user)
     if ch['status']:
@@ -135,7 +135,7 @@ def get_on_section(section):
 @app.route('/password/insert', methods=['POST'])
 @login_required
 def insert_password():
-    data = json.loads(rsa.decrypt(request.data, app.config['SECRET_KEY']).decode())
+    data = json.loads(rsa.decrypt(request.data, rsa.PrivateKey.load_pkcs1(app.config['SECRET_KEY'].encode())).decode())
 
     ch = check_input(data, ['key', 'name_place', 'login', 'password'], current_user)
     if ch['status']:
@@ -167,7 +167,7 @@ def insert_password():
 @app.route('/password/update', methods=['PUT'])
 @login_required
 def update_password_api():
-    data = json.loads(rsa.decrypt(request.data, app.config['SECRET_KEY']).decode())
+    data = json.loads(rsa.decrypt(request.data, rsa.PrivateKey.load_pkcs1(app.config['SECRET_KEY'].encode())).decode())
 
     ch = check_input(data, ['name_place', 'login', 'key'], current_user)
     if ch['status']:
@@ -216,7 +216,7 @@ def update_password_api():
 @app.route('/user/update', methods=['PUT'])
 @login_required
 def update_user_api():
-    data = json.loads(rsa.decrypt(request.data, app.config['SECRET_KEY']).decode())
+    data = json.loads(rsa.decrypt(request.data, rsa.PrivateKey.load_pkcs1(app.config['SECRET_KEY'].encode())).decode())
 
     ch = check_input(data, ['key'], current_user)
     if ch['status']:
